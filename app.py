@@ -14,11 +14,13 @@ def map_pdb():
     chain_id = request.form.get('chain_id')
     residue = request.form.get('residue')
     window = request.form.get('window', 0)
+    insertion_code = request.form.get('insertion_code', '')
     
     with get_db() as conn:
         query = """
         SELECT 
             pdb_residue_number,
+            pdb_residue_insertion_code,
             pdb_residue_name,
             uniprot_accession_id,
             uniprot_residue_number,
@@ -27,7 +29,6 @@ def map_pdb():
         WHERE pdb_accession_id = ? 
         AND pdb_chain_id = ? 
         AND pdb_residue_number BETWEEN ? AND ?
-        ORDER BY pdb_residue_number
         """
         params = [
             pdb_id.lower(), 
@@ -35,6 +36,14 @@ def map_pdb():
             int(residue) - int(window), 
             int(residue) + int(window)
         ]
+        
+        if insertion_code:
+            query += " AND pdb_residue_insertion_code = ?"
+            params.append(insertion_code)
+        else:
+            query += " AND (pdb_residue_insertion_code IS NULL OR pdb_residue_insertion_code = '')"
+        
+        query += " ORDER BY pdb_residue_number, pdb_residue_insertion_code"
         
         result = pl.read_database(query, conn, execute_options={"parameters": params})
         
@@ -55,13 +64,13 @@ def map_uniprot():
             pdb_accession_id,
             pdb_chain_id,
             pdb_residue_number,
+            pdb_residue_insertion_code,
             pdb_residue_name,
-            uniprot_residue_number,
             uniprot_residue_name
         FROM residues 
         WHERE uniprot_accession_id = ? 
         AND uniprot_residue_number BETWEEN ? AND ?
-        ORDER BY pdb_accession_id, pdb_chain_id, pdb_residue_number
+        ORDER BY pdb_accession_id, pdb_chain_id, pdb_residue_number, pdb_residue_insertion_code
         """
         params = [
             uniprot_id,

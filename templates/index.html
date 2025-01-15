@@ -1,132 +1,204 @@
-{% extends "base.html" %}
-
-{% block content %}
+{% extends "base.html" %} {% block content %}
 <div class="row justify-content-center">
-    <div class="col-md-8">
-        <div class="card">
-            <div class="card-header">
-                <ul class="nav nav-tabs card-header-tabs">
-                    <li class="nav-item">
-                        <a class="nav-link active" data-bs-toggle="tab" href="#pdb">PDB → UniProt</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" data-bs-toggle="tab" href="#uniprot">UniProt → PDB</a>
-                    </li>
-                </ul>
-            </div>
-            <div class="card-body">
-                <div class="tab-content">
-                    <div class="tab-pane fade show active" id="pdb">
-                        <form id="pdbForm" class="mt-3">
-                            <div class="row mb-3">
-                                <div class="col-md-6">
-                                    <label class="form-label">PDB ID</label>
-                                    <input type="text" class="form-control" name="pdb_id" 
-                                           placeholder="e.g., 101m" maxlength="4" required>
-                                </div>
-                                <div class="col-md-6">
-                                    <label class="form-label">Chain ID</label>
-                                    <input type="text" class="form-control" name="chain_id" 
-                                           placeholder="e.g., A" maxlength="1" required>
-                                </div>
-                            </div>
-                            <div class="row mb-3">
-                                <div class="col-md-6">
-                                    <label class="form-label">Residue Number</label>
-                                    <input type="number" class="form-control" name="residue" 
-                                           placeholder="e.g., 1" required>
-                                </div>
-                                <div class="col-md-6">
-                                    <label class="form-label">Window</label>
-                                    <input type="number" class="form-control" name="window" 
-                                           value="0" min="0" max="10">
-                                </div>
-                            </div>
-                            <button type="submit" class="btn btn-primary w-100">Get Mapping</button>
-                        </form>
-                    </div>
-                    
-                    <div class="tab-pane fade" id="uniprot">
-						<form id="uniprotForm" class="mt-3">
-							<div class="mb-3">
-								<label class="form-label">UniProt ID</label>
-								<input type="text" class="form-control" name="uniprot_id" 
-									   placeholder="e.g., P02185" required>
-							</div>
-							<div class="row mb-3">
-								<div class="col-md-6">
-									<label class="form-label">Residue Number</label>
-									<input type="number" class="form-control" name="residue" 
-										   placeholder="e.g., 1" required>
-								</div>
-								<div class="col-md-6">
-									<label class="form-label">Window</label>
-									<input type="number" class="form-control" name="window" 
-										   value="0" min="0" max="10">
-								</div>
-							</div>
-							<button type="submit" class="btn btn-primary w-100">Get Mapping</button>
-						</form>
-                    </div>
+  <div class="col-md-8">
+    <div class="card">
+      <div class="card-header">
+        <ul class="nav nav-tabs card-header-tabs">
+          <li class="nav-item">
+            <a class="nav-link active" data-bs-toggle="tab" href="#pdb"
+              >PDB → UniProt</a
+            >
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" data-bs-toggle="tab" href="#uniprot"
+              >UniProt → PDB</a
+            >
+          </li>
+        </ul>
+      </div>
+      <div class="card-body">
+        <div class="tab-content">
+          <div class="tab-pane fade show active" id="pdb">
+            <form id="pdbForm" class="mt-3">
+              <div class="row mb-3">
+                <div class="col-md-6">
+                  <label class="form-label">PDB ID</label>
+                  <input
+                    type="text"
+                    class="form-control"
+                    name="pdb_id"
+                    placeholder="e.g., 101m"
+                    maxlength="4"
+                    required
+                  />
                 </div>
-                
-                <div id="results" class="mt-4" style="display: none;">
-                    <h5>Results:</h5>
-                    <div class="table-responsive">
-                        <table class="table table-bordered table-striped">
-                            <thead>
-                                <tr>
-                                    <th>PDB Residue</th>
-                                    <th>PDB AA</th>
-                                    <th>UniProt ID</th>
-                                    <th>UniProt Residue</th>
-                                    <th>UniProt AA</th>
-                                </tr>
-                            </thead>
-                            <tbody id="resultsBody">
-                            </tbody>
-                        </table>
-                    </div>
+                <div class="col-md-6">
+                  <label class="form-label">Chain ID</label>
+                  <input
+                    type="text"
+                    class="form-control"
+                    name="chain_id"
+                    placeholder="e.g., A"
+                    maxlength="1"
+                    required
+                  />
                 </div>
-                
-                <div id="error" class="alert alert-danger mt-4" style="display: none;">
+              </div>
+              <div class="row mb-3">
+                <div class="col-md-6">
+                  <label class="form-label">Residue Number</label>
+                  <input
+                    type="number"
+                    class="form-control"
+                    name="residue"
+                    placeholder="e.g., 1"
+                    required
+                  />
                 </div>
-            </div>
+                <div class="col-md-6">
+                  <label class="form-label">Insertion Code</label>
+                  <input
+                    type="text"
+                    class="form-control"
+                    name="insertion_code"
+                    placeholder="e.g., A (optional)"
+                    maxlength="1"
+                  />
+                </div>
+              </div>
+              <div class="row mb-3">
+                <div class="col-md-6">
+                  <label class="form-label">Window</label>
+                  <input
+                    type="number"
+                    class="form-control"
+                    name="window"
+                    value="0"
+                    min="0"
+                    max="10"
+                  />
+                </div>
+              </div>
+              <button type="submit" class="btn btn-primary w-100">
+                Get Mapping
+              </button>
+            </form>
+          </div>
+
+          <div class="tab-pane fade" id="uniprot">
+            <form id="uniprotForm" class="mt-3">
+              <div class="mb-3">
+                <label class="form-label">UniProt ID</label>
+                <input
+                  type="text"
+                  class="form-control"
+                  name="uniprot_id"
+                  placeholder="e.g., P02185"
+                  required
+                />
+              </div>
+              <div class="row mb-3">
+                <div class="col-md-6">
+                  <label class="form-label">Residue Number</label>
+                  <input
+                    type="number"
+                    class="form-control"
+                    name="residue"
+                    placeholder="e.g., 1"
+                    required
+                  />
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label">Window</label>
+                  <input
+                    type="number"
+                    class="form-control"
+                    name="window"
+                    value="0"
+                    min="0"
+                    max="10"
+                  />
+                </div>
+              </div>
+              <button type="submit" class="btn btn-primary w-100">
+                Get Mapping
+              </button>
+            </form>
+          </div>
         </div>
+
+        <div id="results" class="mt-4" style="display: none">
+          <h5>Results:</h5>
+          <div class="table-responsive">
+            <table class="table table-bordered table-striped">
+              <thead>
+                <tr id="resultsHeader">
+                  <th>PDB Residue</th>
+                  <th>Insertion Code</th>
+                  <th>PDB AA</th>
+                  <th>UniProt ID</th>
+                  <th>UniProt Residue</th>
+                  <th>UniProt AA</th>
+                </tr>
+              </thead>
+              <tbody id="resultsBody"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <div
+          id="error"
+          class="alert alert-danger mt-4"
+          style="display: none"
+        ></div>
+      </div>
     </div>
+  </div>
 </div>
 
 <script>
-document.getElementById('pdbForm').onsubmit = function(e) {
+  document.getElementById("pdbForm").onsubmit = function (e) {
     e.preventDefault();
-    
+
     const formData = new FormData(e.target);
-    
-    fetch('/map/pdb', {
-        method: 'POST',
-        body: formData
+
+    fetch("/map/pdb", {
+      method: "POST",
+      body: formData,
     })
-    .then(response => response.json())
-    .then(data => {
-        const resultsDiv = document.getElementById('results');
-        const errorDiv = document.getElementById('error');
-        const resultsBody = document.getElementById('resultsBody');
-        
+      .then((response) => response.json())
+      .then((data) => {
+        const resultsDiv = document.getElementById("results");
+        const errorDiv = document.getElementById("error");
+        const resultsBody = document.getElementById("resultsBody");
+        const resultsHeader = document.getElementById("resultsHeader");
+
         if (data.error) {
-            errorDiv.textContent = data.error;
-            errorDiv.style.display = 'block';
-            resultsDiv.style.display = 'none';
-            return;
+          errorDiv.textContent = data.error;
+          errorDiv.style.display = "block";
+          resultsDiv.style.display = "none";
+          return;
         }
-        
-        errorDiv.style.display = 'none';
-        resultsDiv.style.display = 'block';
-        resultsBody.innerHTML = '';
-        
-        data.forEach(row => {
-            resultsBody.innerHTML += `
+
+        errorDiv.style.display = "none";
+        resultsDiv.style.display = "block";
+        resultsBody.innerHTML = "";
+
+        // Update table headers for PDB results
+        resultsHeader.innerHTML = `
+            <th>PDB Residue</th>
+            <th>Insertion Code</th>
+            <th>PDB AA</th>
+            <th>UniProt ID</th>
+            <th>UniProt Residue</th>
+            <th>UniProt AA</th>
+        `;
+
+        data.forEach((row) => {
+          resultsBody.innerHTML += `
                 <tr>
                     <td>${row.pdb_residue_number}</td>
+                    <td>${row.pdb_residue_insertion_code || "-"}</td>
                     <td>${row.pdb_residue_name}</td>
                     <td>${row.uniprot_accession_id}</td>
                     <td>${row.uniprot_residue_number}</td>
@@ -134,65 +206,71 @@ document.getElementById('pdbForm').onsubmit = function(e) {
                 </tr>
             `;
         });
-    })
-    .catch(error => {
-        document.getElementById('error').textContent = 'An error occurred while fetching the data.';
-        document.getElementById('error').style.display = 'block';
-        document.getElementById('results').style.display = 'none';
-    });
-};
-document.getElementById('uniprotForm').onsubmit = function(e) {
+      })
+      .catch((error) => {
+        document.getElementById("error").textContent =
+          "An error occurred while fetching the data.";
+        document.getElementById("error").style.display = "block";
+        document.getElementById("results").style.display = "none";
+      });
+  };
+
+  document.getElementById("uniprotForm").onsubmit = function (e) {
     e.preventDefault();
-    
+
     const formData = new FormData(e.target);
-    
-    fetch('/map/uniprot', {
-        method: 'POST',
-        body: formData
+
+    fetch("/map/uniprot", {
+      method: "POST",
+      body: formData,
     })
-    .then(response => response.json())
-    .then(data => {
-        const resultsDiv = document.getElementById('results');
-        const errorDiv = document.getElementById('error');
-        const resultsBody = document.getElementById('resultsBody');
-        
+      .then((response) => response.json())
+      .then((data) => {
+        const resultsDiv = document.getElementById("results");
+        const errorDiv = document.getElementById("error");
+        const resultsBody = document.getElementById("resultsBody");
+        const resultsHeader = document.getElementById("resultsHeader");
+
         if (data.error) {
-            errorDiv.textContent = data.error;
-            errorDiv.style.display = 'block';
-            resultsDiv.style.display = 'none';
-            return;
+          errorDiv.textContent = data.error;
+          errorDiv.style.display = "block";
+          resultsDiv.style.display = "none";
+          return;
         }
-        
-        errorDiv.style.display = 'none';
-        resultsDiv.style.display = 'block';
-        resultsBody.innerHTML = '';
-        
+
+        errorDiv.style.display = "none";
+        resultsDiv.style.display = "block";
+        resultsBody.innerHTML = "";
+
         // Update table headers for UniProt results
-        document.querySelector('#results thead tr').innerHTML = `
+        resultsHeader.innerHTML = `
             <th>PDB ID</th>
             <th>Chain</th>
             <th>PDB Residue</th>
+            <th>Insertion Code</th>
             <th>PDB AA</th>
             <th>UniProt AA</th>
         `;
-        
-        data.forEach(row => {
-            resultsBody.innerHTML += `
+
+        data.forEach((row) => {
+          resultsBody.innerHTML += `
                 <tr>
                     <td>${row.pdb_accession_id}</td>
                     <td>${row.pdb_chain_id}</td>
                     <td>${row.pdb_residue_number}</td>
+                    <td>${row.pdb_residue_insertion_code || "-"}</td>
                     <td>${row.pdb_residue_name}</td>
                     <td>${row.uniprot_residue_name}</td>
                 </tr>
             `;
         });
-    })
-    .catch(error => {
-        document.getElementById('error').textContent = 'An error occurred while fetching the data.';
-        document.getElementById('error').style.display = 'block';
-        document.getElementById('results').style.display = 'none';
-    });
-};
+      })
+      .catch((error) => {
+        document.getElementById("error").textContent =
+          "An error occurred while fetching the data.";
+        document.getElementById("error").style.display = "block";
+        document.getElementById("results").style.display = "none";
+      });
+  };
 </script>
 {% endblock %}
