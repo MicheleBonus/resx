@@ -1,18 +1,15 @@
-{% extends "base.html" %} {% block content %}
+{% extends "base.html" %}
+{% block content %}
 <div class="row justify-content-center">
   <div class="col-md-8">
     <div class="card">
       <div class="card-header">
         <ul class="nav nav-tabs card-header-tabs">
           <li class="nav-item">
-            <a class="nav-link active" data-bs-toggle="tab" href="#pdb"
-              >PDB → UniProt</a
-            >
+            <a class="nav-link active" data-bs-toggle="tab" href="#pdb">PDB → UniProt</a>
           </li>
           <li class="nav-item">
-            <a class="nav-link" data-bs-toggle="tab" href="#uniprot"
-              >UniProt → PDB</a
-            >
+            <a class="nav-link" data-bs-toggle="tab" href="#uniprot">UniProt → PDB</a>
           </li>
         </ul>
       </div>
@@ -23,64 +20,46 @@
               <div class="row mb-3">
                 <div class="col-md-6">
                   <label class="form-label">PDB ID</label>
-                  <input
-                    type="text"
-                    class="form-control"
-                    name="pdb_id"
-                    placeholder="e.g., 101m"
-                    maxlength="4"
-                    required
-                  />
+                  <input type="text" class="form-control" name="pdb_id" 
+                         placeholder="e.g., 101m" maxlength="4" required />
                 </div>
                 <div class="col-md-6">
                   <label class="form-label">Chain ID</label>
-                  <input
-                    type="text"
-                    class="form-control"
-                    name="chain_id"
-                    placeholder="e.g., A"
-                    maxlength="1"
-                    required
-                  />
+                  <input type="text" class="form-control" name="chain_id" 
+                         placeholder="e.g., A" maxlength="1" required />
                 </div>
               </div>
               <div class="row mb-3">
                 <div class="col-md-6">
                   <label class="form-label">Residue Number</label>
-                  <input
-                    type="number"
-                    class="form-control"
-                    name="residue"
-                    placeholder="e.g., 1"
-                    required
-                  />
+                  <input type="number" class="form-control" name="residue" 
+                         placeholder="e.g., 1" required />
                 </div>
                 <div class="col-md-6">
                   <label class="form-label">Insertion Code</label>
-                  <input
-                    type="text"
-                    class="form-control"
-                    name="insertion_code"
-                    placeholder="e.g., A (optional)"
-                    maxlength="1"
-                  />
+                  <input type="text" class="form-control" name="insertion_code" 
+                         placeholder="e.g., A (optional)" maxlength="1" />
                 </div>
               </div>
               <div class="row mb-3">
                 <div class="col-md-6">
                   <label class="form-label">Window</label>
-                  <input
-                    type="number"
-                    class="form-control"
-                    name="window"
-                    value="0"
-                    min="0"
-                    max="10"
-                  />
+                  <input type="number" class="form-control" name="window" 
+                         value="0" min="0" max="10" />
                 </div>
               </div>
-              <button type="submit" class="btn btn-primary w-100">
-                Get Mapping
+              <div class="text-muted mb-3">
+                Examples:
+                <button type="button" class="btn btn-sm btn-outline-secondary" onclick="fillPDBExample('101m', 'A', '1')">
+                  101m Chain A, Res 1
+                </button>
+                <button type="button" class="btn btn-sm btn-outline-secondary" onclick="fillPDBExample('1abc', 'B', '50')">
+                  1abc Chain B, Res 50
+                </button>
+              </div>
+              <button type="submit" class="btn btn-primary w-100" id="pdbSubmitBtn">
+                <span class="spinner-border spinner-border-sm d-none" id="pdbLoadingSpinner"></span>
+                <span id="pdbSubmitText">Get Mapping</span>
               </button>
             </form>
           </div>
@@ -89,39 +68,33 @@
             <form id="uniprotForm" class="mt-3">
               <div class="mb-3">
                 <label class="form-label">UniProt ID</label>
-                <input
-                  type="text"
-                  class="form-control"
-                  name="uniprot_id"
-                  placeholder="e.g., P02185"
-                  required
-                />
+                <input type="text" class="form-control" name="uniprot_id" 
+                       placeholder="e.g., P02185" required />
               </div>
               <div class="row mb-3">
                 <div class="col-md-6">
                   <label class="form-label">Residue Number</label>
-                  <input
-                    type="number"
-                    class="form-control"
-                    name="residue"
-                    placeholder="e.g., 1"
-                    required
-                  />
+                  <input type="number" class="form-control" name="residue" 
+                         placeholder="e.g., 1" required />
                 </div>
                 <div class="col-md-6">
                   <label class="form-label">Window</label>
-                  <input
-                    type="number"
-                    class="form-control"
-                    name="window"
-                    value="0"
-                    min="0"
-                    max="10"
-                  />
+                  <input type="number" class="form-control" name="window" 
+                         value="0" min="0" max="10" />
                 </div>
               </div>
-              <button type="submit" class="btn btn-primary w-100">
-                Get Mapping
+              <div class="text-muted mb-3">
+                Examples:
+                <button type="button" class="btn btn-sm btn-outline-secondary" onclick="fillUniProtExample('P02185', '1')">
+                  P02185, Res 1
+                </button>
+                <button type="button" class="btn btn-sm btn-outline-secondary" onclick="fillUniProtExample('P69905', '50')">
+                  P69905, Res 50
+                </button>
+              </div>
+              <button type="submit" class="btn btn-primary w-100" id="uniprotSubmitBtn">
+                <span class="spinner-border spinner-border-sm d-none" id="uniprotLoadingSpinner"></span>
+                <span id="uniprotSubmitText">Get Mapping</span>
               </button>
             </form>
           </div>
@@ -144,133 +117,230 @@
               <tbody id="resultsBody"></tbody>
             </table>
           </div>
+          <div class="mt-3">
+            <button class="btn btn-sm btn-outline-primary" onclick="copyResults()">
+              Copy to Clipboard
+            </button>
+            <button class="btn btn-sm btn-outline-primary" onclick="downloadCSV()">
+              Download CSV
+            </button>
+            <button class="btn btn-sm btn-outline-primary" onclick="downloadJSON()">
+              Download JSON
+            </button>
+          </div>
         </div>
 
-        <div
-          id="error"
-          class="alert alert-danger mt-4"
-          style="display: none"
-        ></div>
+        <div id="error" class="alert alert-danger mt-4" style="display: none"></div>
       </div>
     </div>
   </div>
 </div>
 
 <script>
-  document.getElementById("pdbForm").onsubmit = function (e) {
+let currentResults = null;
+
+// Example filling functions
+function fillPDBExample(pdb, chain, res) {
+    document.querySelector('#pdbForm input[name="pdb_id"]').value = pdb;
+    document.querySelector('#pdbForm input[name="chain_id"]').value = chain;
+    document.querySelector('#pdbForm input[name="residue"]').value = res;
+}
+
+function fillUniProtExample(uniprot, res) {
+    document.querySelector('#uniprotForm input[name="uniprot_id"]').value = uniprot;
+    document.querySelector('#uniprotForm input[name="residue"]').value = res;
+}
+
+// Loading state functions
+function showLoading(formType) {
+    const spinner = document.getElementById(formType + 'LoadingSpinner');
+    const text = document.getElementById(formType + 'SubmitText');
+    const btn = document.getElementById(formType + 'SubmitBtn');
+    
+    spinner.classList.remove('d-none');
+    text.textContent = 'Loading...';
+    btn.disabled = true;
+}
+
+function hideLoading(formType) {
+    const spinner = document.getElementById(formType + 'LoadingSpinner');
+    const text = document.getElementById(formType + 'SubmitText');
+    const btn = document.getElementById(formType + 'SubmitBtn');
+    
+    spinner.classList.add('d-none');
+    text.textContent = 'Get Mapping';
+    btn.disabled = false;
+}
+
+// Export functions
+function copyResults() {
+    const table = document.querySelector('#results table');
+    const rows = Array.from(table.querySelectorAll('tr'));
+    
+    let text = rows.map(row => {
+        return Array.from(row.querySelectorAll('th, td'))
+            .map(cell => cell.textContent.trim())
+            .join('\t');
+    }).join('\n');
+    
+    navigator.clipboard.writeText(text).then(() => {
+        alert('Copied to clipboard!');
+    });
+}
+
+function downloadCSV() {
+    const table = document.querySelector('#results table');
+    const rows = Array.from(table.querySelectorAll('tr'));
+    
+    let csv = rows.map(row => {
+        return Array.from(row.querySelectorAll('th, td'))
+            .map(cell => `"${cell.textContent.trim()}"`)
+            .join(',');
+    }).join('\n');
+    
+    downloadFile(csv, 'mapping.csv', 'text/csv');
+}
+
+function downloadJSON() {
+    const jsonData = JSON.stringify(currentResults, null, 2);
+    downloadFile(jsonData, 'mapping.json', 'application/json');
+}
+
+function downloadFile(content, filename, contentType) {
+    const blob = new Blob([content], { type: contentType });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    a.click();
+    window.URL.revokeObjectURL(url);
+}
+
+// Form handlers
+document.getElementById('pdbForm').onsubmit = function(e) {
     e.preventDefault();
+    showLoading('pdb');
 
     const formData = new FormData(e.target);
 
-    fetch("/map/pdb", {
-      method: "POST",
-      body: formData,
+    fetch('/map/pdb', {
+        method: 'POST',
+        body: formData,
     })
-      .then((response) => response.json())
-      .then((data) => {
-        const resultsDiv = document.getElementById("results");
-        const errorDiv = document.getElementById("error");
-        const resultsBody = document.getElementById("resultsBody");
-        const resultsHeader = document.getElementById("resultsHeader");
+        .then(response => response.json())
+        .then(data => {
+            const resultsDiv = document.getElementById('results');
+            const errorDiv = document.getElementById('error');
+            const resultsBody = document.getElementById('resultsBody');
+            const resultsHeader = document.getElementById('resultsHeader');
 
-        if (data.error) {
-          errorDiv.textContent = data.error;
-          errorDiv.style.display = "block";
-          resultsDiv.style.display = "none";
-          return;
-        }
+            if (data.error) {
+                errorDiv.textContent = data.error;
+                errorDiv.style.display = 'block';
+                resultsDiv.style.display = 'none';
+                return;
+            }
 
-        errorDiv.style.display = "none";
-        resultsDiv.style.display = "block";
-        resultsBody.innerHTML = "";
+            currentResults = data;  // Store for JSON export
+            errorDiv.style.display = 'none';
+            resultsDiv.style.display = 'block';
+            resultsBody.innerHTML = '';
 
-        // Update table headers for PDB results
-        resultsHeader.innerHTML = `
-            <th>PDB Residue</th>
-            <th>Insertion Code</th>
-            <th>PDB AA</th>
-            <th>UniProt ID</th>
-            <th>UniProt Residue</th>
-            <th>UniProt AA</th>
-        `;
-
-        data.forEach((row) => {
-          resultsBody.innerHTML += `
-                <tr>
-                    <td>${row.pdb_residue_number}</td>
-                    <td>${row.pdb_residue_insertion_code || "-"}</td>
-                    <td>${row.pdb_residue_name}</td>
-                    <td>${row.uniprot_accession_id}</td>
-                    <td>${row.uniprot_residue_number}</td>
-                    <td>${row.uniprot_residue_name}</td>
-                </tr>
+            // Update table headers for PDB results
+            resultsHeader.innerHTML = `
+                <th>PDB Residue</th>
+                <th>Insertion Code</th>
+                <th>PDB AA</th>
+                <th>UniProt ID</th>
+                <th>UniProt Residue</th>
+                <th>UniProt AA</th>
             `;
-        });
-      })
-      .catch((error) => {
-        document.getElementById("error").textContent =
-          "An error occurred while fetching the data.";
-        document.getElementById("error").style.display = "block";
-        document.getElementById("results").style.display = "none";
-      });
-  };
 
-  document.getElementById("uniprotForm").onsubmit = function (e) {
+            data.forEach(row => {
+                resultsBody.innerHTML += `
+                    <tr>
+                        <td>${row.pdb_residue_number}</td>
+                        <td>${row.pdb_residue_insertion_code || '-'}</td>
+                        <td>${row.pdb_residue_name}</td>
+                        <td>${row.uniprot_accession_id}</td>
+                        <td>${row.uniprot_residue_number}</td>
+                        <td>${row.uniprot_residue_name}</td>
+                    </tr>
+                `;
+            });
+        })
+        .catch(error => {
+            document.getElementById('error').textContent =
+                'An error occurred while fetching the data.';
+            document.getElementById('error').style.display = 'block';
+            document.getElementById('results').style.display = 'none';
+        })
+        .finally(() => {
+            hideLoading('pdb');
+        });
+};
+
+document.getElementById('uniprotForm').onsubmit = function(e) {
     e.preventDefault();
+    showLoading('uniprot');
 
     const formData = new FormData(e.target);
 
-    fetch("/map/uniprot", {
-      method: "POST",
-      body: formData,
+    fetch('/map/uniprot', {
+        method: 'POST',
+        body: formData,
     })
-      .then((response) => response.json())
-      .then((data) => {
-        const resultsDiv = document.getElementById("results");
-        const errorDiv = document.getElementById("error");
-        const resultsBody = document.getElementById("resultsBody");
-        const resultsHeader = document.getElementById("resultsHeader");
+        .then(response => response.json())
+        .then(data => {
+            const resultsDiv = document.getElementById('results');
+            const errorDiv = document.getElementById('error');
+            const resultsBody = document.getElementById('resultsBody');
+            const resultsHeader = document.getElementById('resultsHeader');
 
-        if (data.error) {
-          errorDiv.textContent = data.error;
-          errorDiv.style.display = "block";
-          resultsDiv.style.display = "none";
-          return;
-        }
+            if (data.error) {
+                errorDiv.textContent = data.error;
+                errorDiv.style.display = 'block';
+                resultsDiv.style.display = 'none';
+                return;
+            }
 
-        errorDiv.style.display = "none";
-        resultsDiv.style.display = "block";
-        resultsBody.innerHTML = "";
+            currentResults = data;  // Store for JSON export
+            errorDiv.style.display = 'none';
+            resultsDiv.style.display = 'block';
+            resultsBody.innerHTML = '';
 
-        // Update table headers for UniProt results
-        resultsHeader.innerHTML = `
-            <th>PDB ID</th>
-            <th>Chain</th>
-            <th>PDB Residue</th>
-            <th>Insertion Code</th>
-            <th>PDB AA</th>
-            <th>UniProt AA</th>
-        `;
-
-        data.forEach((row) => {
-          resultsBody.innerHTML += `
-                <tr>
-                    <td>${row.pdb_accession_id}</td>
-                    <td>${row.pdb_chain_id}</td>
-                    <td>${row.pdb_residue_number}</td>
-                    <td>${row.pdb_residue_insertion_code || "-"}</td>
-                    <td>${row.pdb_residue_name}</td>
-                    <td>${row.uniprot_residue_name}</td>
-                </tr>
+            // Update table headers for UniProt results
+            resultsHeader.innerHTML = `
+                <th>PDB ID</th>
+                <th>Chain</th>
+                <th>PDB Residue</th>
+                <th>Insertion Code</th>
+                <th>PDB AA</th>
+                <th>UniProt AA</th>
             `;
+
+            data.forEach(row => {
+                resultsBody.innerHTML += `
+                    <tr>
+                        <td>${row.pdb_accession_id}</td>
+                        <td>${row.pdb_chain_id}</td>
+                        <td>${row.pdb_residue_number}</td>
+                        <td>${row.pdb_residue_insertion_code || '-'}</td>
+                        <td>${row.pdb_residue_name}</td>
+                        <td>${row.uniprot_residue_name}</td>
+                    </tr>
+                `;
+            });
+        })
+        .catch(error => {
+            document.getElementById('error').textContent =
+                'An error occurred while fetching the data.';
+            document.getElementById('error').style.display = 'block';
+            document.getElementById('results').style.display = 'none';
+        })
+        .finally(() => {
+            hideLoading('uniprot');
         });
-      })
-      .catch((error) => {
-        document.getElementById("error").textContent =
-          "An error occurred while fetching the data.";
-        document.getElementById("error").style.display = "block";
-        document.getElementById("results").style.display = "none";
-      });
-  };
+};
 </script>
 {% endblock %}
