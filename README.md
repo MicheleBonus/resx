@@ -72,7 +72,7 @@ pytest tests/
 Jupyter notebooks in the `notebooks/` directory provide examples and testing procedures.
 
 ## License
-[Your chosen license]
+MIT
 
 ## Contributors
-[Your name/organization]
+Michele Bonus
