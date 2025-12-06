@@ -196,6 +196,37 @@ Sample response:
 ]
 ```
 
+### `GET /chains/<pdb_id>/<chain_id>` — List residues for a chain
+
+Path parameters:
+- `pdb_id`: PDB identifier (e.g., `101m`). Case-insensitive.
+- `chain_id`: Chain identifier (e.g., `A`).
+
+Response:
+- Returns all residues for the specified PDB chain with their residue numbers, insertion codes, and residue names, ordered by residue number and insertion code.
+- If no residues are found, the route returns HTTP 404 with `{"message": "No residues found for the requested chain"}`.
+
+Sample request:
+```bash
+curl http://127.0.0.1:5000/chains/1abc/A
+```
+
+Sample response:
+```json
+[
+  {
+    "pdb_residue_number": 1,
+    "pdb_residue_insertion_code": "",
+    "pdb_residue_name": "MET"
+  },
+  {
+    "pdb_residue_number": 2,
+    "pdb_residue_insertion_code": "",
+    "pdb_residue_name": "GLY"
+  }
+]
+```
+
 ## Development
 
 ### Running Tests
