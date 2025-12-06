@@ -140,20 +140,30 @@
         </div>
 
         <div id="sequenceViewer" class="mt-4" style="display: none">
-          <h5>Sequence Context</h5>
-          <div class="sequence-track-container">
-            <div class="d-flex justify-content-between align-items-center">
-              <strong>PDB Chain</strong>
-              <small id="pdbSequenceLabel" class="text-muted"></small>
+          <h5>Sequence Mapping</h5>
+          <p class="text-muted small mb-2">
+            UniProt sequence is shown on top with its mapped PDB residues below. Hover to see residue details.
+          </p>
+          <div id="sequenceMappingContainer" class="sequence-track-container" style="display: none">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+              <strong>Aligned mapping</strong>
+              <small class="text-muted">UniProt → PDB</small>
             </div>
-            <div id="pdbSequenceTrack" class="sequence-track border rounded p-2"></div>
+            <div id="sequenceMapping" class="sequence-mapping border rounded p-3"></div>
           </div>
           <div class="sequence-track-container mt-3">
             <div class="d-flex justify-content-between align-items-center">
-              <strong>UniProt</strong>
+              <strong>UniProt context</strong>
               <small id="uniprotSequenceLabel" class="text-muted"></small>
             </div>
             <div id="uniprotSequenceTrack" class="sequence-track border rounded p-2"></div>
+          </div>
+          <div class="sequence-track-container mt-3">
+            <div class="d-flex justify-content-between align-items-center">
+              <strong>PDB chain context</strong>
+              <small id="pdbSequenceLabel" class="text-muted"></small>
+            </div>
+            <div id="pdbSequenceTrack" class="sequence-track border rounded p-2"></div>
           </div>
         </div>
 
@@ -172,6 +182,8 @@ const exportButtons = [
 ];
 const errorDiv = document.getElementById('error');
 const sequenceViewer = document.getElementById('sequenceViewer');
+const sequenceMappingContainer = document.getElementById('sequenceMappingContainer');
+const sequenceMapping = document.getElementById('sequenceMapping');
 const pdbSequenceTrack = document.getElementById('pdbSequenceTrack');
 const uniprotSequenceTrack = document.getElementById('uniprotSequenceTrack');
 const pdbSequenceLabel = document.getElementById('pdbSequenceLabel');
@@ -186,17 +198,60 @@ residueStyles.textContent = `
     line-height: 1.6;
   }
   .residue-chip {
-    display: inline-block;
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-width: 48px;
     margin: 2px 1px;
-    padding: 4px 6px;
-    border-radius: 4px;
+    padding: 6px 8px;
+    border-radius: 6px;
     border: 1px solid #e2e6ea;
     background-color: #f8f9fa;
+    cursor: help;
+    text-align: center;
   }
   .residue-chip.highlight {
-    background-color: #ffeeba;
+    background-color: #fff3cd;
     border-color: #f0ad4e;
-    font-weight: bold;
+    font-weight: 600;
+    box-shadow: 0 0 0 2px rgba(240, 173, 78, 0.2);
+  }
+  .residue-label {
+    font-weight: 600;
+  }
+  .residue-name {
+    font-size: 0.85em;
+    color: #6c757d;
+  }
+  .sequence-mapping {
+    display: grid;
+    grid-auto-flow: column;
+    grid-auto-columns: minmax(90px, 1fr);
+    column-gap: 12px;
+    row-gap: 6px;
+    overflow-x: auto;
+    padding-bottom: 4px;
+    background: linear-gradient(#f8f9fa, #fff);
+  }
+  .mapping-column {
+    position: relative;
+    display: grid;
+    grid-template-rows: auto 14px auto;
+    align-items: center;
+    justify-items: center;
+    gap: 6px;
+    min-width: 90px;
+  }
+  .connection-line {
+    width: 2px;
+    height: 100%;
+    background: #ced4da;
+    border-radius: 1px;
+  }
+  .connection-line.highlight {
+    background: #f0ad4e;
+    box-shadow: 0 0 0 2px rgba(240, 173, 78, 0.25);
   }
 `;
 document.head.appendChild(residueStyles);
@@ -213,6 +268,8 @@ function clearError() {
 
 function clearSequences() {
     sequenceViewer.style.display = 'none';
+    sequenceMappingContainer.style.display = 'none';
+    sequenceMapping.innerHTML = '';
     pdbSequenceTrack.innerHTML = '';
     uniprotSequenceTrack.innerHTML = '';
     pdbSequenceLabel.textContent = '';
@@ -390,11 +447,14 @@ function downloadFile(content, filename, contentType) {
     window.URL.revokeObjectURL(url);
 }
 
-function createResidueChip(label, name, isHighlighted) {
+function createResidueChip(label, name, isHighlighted, titleText) {
     const span = document.createElement('span');
     span.className = 'residue-chip' + (isHighlighted ? ' highlight' : '');
-    span.title = `${label} (${name})`;
-    span.textContent = `${label}:${name}`;
+    span.title = titleText || `${label} (${name})`;
+    span.innerHTML = `
+        <div class="residue-label">${label}</div>
+        <div class="residue-name">${name || ''}</div>
+    `;
     return span;
 }
 
@@ -410,7 +470,56 @@ function renderSequenceTrack(trackElement, sequence, highlightSet, getKey) {
     });
 }
 
-function renderSequencesView(sequencePayload, highlights, labels) {
+function renderMappingView(mappings, highlights) {
+    sequenceMapping.innerHTML = '';
+
+    if (!mappings || mappings.length === 0) {
+        sequenceMappingContainer.style.display = 'none';
+        return;
+    }
+
+    const sortedMappings = [...mappings].sort((a, b) => {
+        if (a.uniprot_residue_number !== b.uniprot_residue_number) {
+            return a.uniprot_residue_number - b.uniprot_residue_number;
+        }
+        return a.pdb_residue_number - b.pdb_residue_number;
+    });
+
+    sortedMappings.forEach(row => {
+        const column = document.createElement('div');
+        column.className = 'mapping-column';
+
+        const uniprotKey = `${row.uniprot_residue_number}`;
+        const pdbKey = `${row.pdb_residue_number}${row.pdb_residue_insertion_code || ''}`;
+        const isUniProtHighlight = highlights.uniprot.has(uniprotKey);
+        const isPdbHighlight = highlights.pdb.has(pdbKey);
+        const isHighlighted = isUniProtHighlight || isPdbHighlight;
+
+        const uniprotChip = createResidueChip(
+            uniprotKey,
+            row.uniprot_residue_name,
+            isUniProtHighlight,
+            `UniProt ${row.uniprot_accession_id} residue ${uniprotKey} (${row.uniprot_residue_name})`
+        );
+        const connection = document.createElement('div');
+        connection.className = 'connection-line' + (isHighlighted ? ' highlight' : '');
+        const pdbChip = createResidueChip(
+            pdbKey,
+            row.pdb_residue_name,
+            isPdbHighlight,
+            `PDB ${row.pdb_accession_id.toUpperCase()} chain ${row.pdb_chain_id} residue ${pdbKey} (${row.pdb_residue_name})`
+        );
+
+        column.appendChild(uniprotChip);
+        column.appendChild(connection);
+        column.appendChild(pdbChip);
+        sequenceMapping.appendChild(column);
+    });
+
+    sequenceMappingContainer.style.display = 'block';
+}
+
+function renderSequencesView(sequencePayload, highlights, labels, mappings) {
     const { pdb_sequence: pdbSequence, uniprot_sequence: uniprotSequence } = sequencePayload;
 
     if (!pdbSequence || !uniprotSequence) {
@@ -418,15 +527,8 @@ function renderSequencesView(sequencePayload, highlights, labels) {
         return;
     }
 
-    pdbSequenceLabel.textContent = labels.pdb;
     uniprotSequenceLabel.textContent = labels.uniprot;
-
-    renderSequenceTrack(
-        pdbSequenceTrack,
-        pdbSequence,
-        highlights.pdb,
-        residue => `${residue.pdb_residue_number}${residue.pdb_residue_insertion_code || ''}`
-    );
+    pdbSequenceLabel.textContent = labels.pdb;
 
     renderSequenceTrack(
         uniprotSequenceTrack,
@@ -435,6 +537,14 @@ function renderSequencesView(sequencePayload, highlights, labels) {
         residue => `${residue.uniprot_residue_number}`
     );
 
+    renderSequenceTrack(
+        pdbSequenceTrack,
+        pdbSequence,
+        highlights.pdb,
+        residue => `${residue.pdb_residue_number}${residue.pdb_residue_insertion_code || ''}`
+    );
+
+    renderMappingView(mappings, highlights);
     sequenceViewer.style.display = 'block';
 }
 
@@ -548,7 +658,8 @@ document.getElementById('pdbForm').onsubmit = function(e) {
                             {
                                 pdb: `${formData.get('pdb_id').toUpperCase()} chain ${formData.get('chain_id').toUpperCase()} (target ${residue}${insertionCode || ''} ±${window})`,
                                 uniprot: `${uniprotId} (mapped window)`,
-                            }
+                            },
+                            currentResults
                         );
                     })
                     .catch(() => clearSequences());
@@ -674,7 +785,8 @@ document.getElementById('uniprotForm').onsubmit = function(e) {
                             {
                                 pdb: `${pdbId.toUpperCase()} chain ${chainId} (mapped window)`,
                                 uniprot: `${formData.get('uniprot_id').toUpperCase()} target ${residue} ±${window}`,
-                            }
+                            },
+                            currentResults
                         );
                     })
                     .catch(() => clearSequences());
