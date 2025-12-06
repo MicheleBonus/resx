@@ -9,19 +9,23 @@ class ValidationResult:
 
 
 def _missing_field(field: str) -> Tuple[dict, int]:
-    return {"error": f"Missing required field: {field}"}, 400
+    return {"message": f"Missing required field: {field}", "field": field}, 400
 
 
-def _invalid_number(field: str) -> Tuple[dict, int]:
-    return {"error": f"{field} must be an integer"}, 400
+def _invalid_integer(field: str) -> Tuple[dict, int]:
+    return {"message": f"{field} must be an integer", "field": field}, 400
+
+
+def _invalid_positive_integer(field: str) -> Tuple[dict, int]:
+    return {"message": f"{field} must be a positive integer", "field": field}, 400
 
 
 def _invalid_window() -> Tuple[dict, int]:
-    return {"error": "window must be an integer between 0 and 10"}, 400
+    return {"message": "window must be an integer between 0 and 10", "field": "window"}, 400
 
 
 def _invalid_insertion_code() -> Tuple[dict, int]:
-    return {"error": "insertion_code must be a single character"}, 400
+    return {"message": "insertion_code must be a single character", "field": "insertion_code"}, 400
 
 
 def validate_request(form, required_fields, *, allow_insertion_code: bool = False) -> ValidationResult:
@@ -34,15 +38,19 @@ def validate_request(form, required_fields, *, allow_insertion_code: bool = Fals
         data[field] = value
 
     try:
-        data["residue"] = int(data["residue"])
+        residue = int(data["residue"])
     except (KeyError, ValueError, TypeError):
-        return ValidationResult({}, _invalid_number("residue"))
+        return ValidationResult({}, _invalid_integer("residue"))
+
+    if residue <= 0:
+        return ValidationResult({}, _invalid_positive_integer("residue"))
+    data["residue"] = residue
 
     window_raw = form.get("window", "0")
     try:
         window = int(window_raw)
     except (ValueError, TypeError):
-        return ValidationResult({}, _invalid_number("window"))
+        return ValidationResult({}, _invalid_integer("window"))
 
     if window < 0 or window > 10:
         return ValidationResult({}, _invalid_window())
