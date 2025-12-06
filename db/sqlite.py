@@ -1,3 +1,4 @@
+import os
 import sqlite3
 from functools import lru_cache
 from pathlib import Path
@@ -5,7 +6,11 @@ from typing import Generator
 from contextlib import contextmanager
 
 # Database configuration
-DATABASE_PATH = "C:/Users/Miche/Desktop/TopUniPDBMapper/topunipdbmapper.db"
+# By default, the database lives at <repo_root>/db/topunipdbmapper.db. Override by
+# setting TOPUNIPDBMAPPER_DB to a custom path. Environment values are processed
+# with Path(...).expanduser() so user home shortcuts work.
+DEFAULT_DATABASE_PATH = Path(__file__).resolve().parent.parent / "db" / "topunipdbmapper.db"
+ENV_DATABASE_PATH = "TOPUNIPDBMAPPER_DB"
 
 class DatabaseError(Exception):
     """Base class for database-related errors"""
@@ -15,11 +20,26 @@ class DatabaseConnectionError(DatabaseError):
     """Raised when database connection fails"""
     pass
 
+
+def resolve_database_path() -> Path:
+    """
+    Resolve the SQLite database path, honoring the TOPUNIPDBMAPPER_DB env var.
+
+    If the environment variable is set, its value is expanded with
+    ``Path(...).expanduser()`` to support home shortcuts. Otherwise, the
+    default path ``<repo_root>/db/topunipdbmapper.db`` is used.
+    """
+    env_value = os.environ.get(ENV_DATABASE_PATH)
+    if env_value:
+        return Path(env_value).expanduser()
+    return DEFAULT_DATABASE_PATH
+
+
 @contextmanager
 def get_db() -> Generator[sqlite3.Connection, None, None]:
     """
     Create and manage a database connection using a context manager.
-    
+
     Returns:
         sqlite3.Connection: Database connection object
         
@@ -27,7 +47,7 @@ def get_db() -> Generator[sqlite3.Connection, None, None]:
         DatabaseConnectionError: If connection cannot be established
     """
     try:
-        conn = sqlite3.connect(DATABASE_PATH)
+        conn = sqlite3.connect(resolve_database_path())
         # Enable foreign keys
         conn.execute("PRAGMA foreign_keys = ON")
         yield conn
