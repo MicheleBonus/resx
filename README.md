@@ -17,11 +17,22 @@ git clone https://github.com/yourusername/resx.git
 cd resx
 ```
 
-2. Create and activate a virtual environment (recommended):
-```bash
-python -m venv .venv
-source .venv/bin/activate  # On Windows: .venv\Scripts\activate
-```
+2. Create and activate an isolated environment (recommended):
+
+   - **venv (built-in Python):**
+     ```bash
+     python -m venv .venv
+     source .venv/bin/activate  # On Windows: .venv\Scripts\activate
+     ```
+
+   - **Conda/Mamba:**
+     ```bash
+     mamba create -n resx python=3.11
+     mamba activate resx
+     # or with conda
+     conda create -n resx python=3.11
+     conda activate resx
+     ```
 
 3. Install dependencies using one of the options below.
 
@@ -51,8 +62,19 @@ uv pip install -e .
 uv pip install -r requirements.txt
 ```
 
+### Option D: `conda`/`mamba` installation
+If you prefer to manage packages through `conda` or `mamba` inside the activated environment:
+```bash
+# Install from pyproject (when available)
+mamba install pip
+pip install -e .
+
+# Or install from requirements.txt
+pip install -r requirements.txt
+```
+
 ### Database location
-The application expects the SQLite database at `db/topunipdbmapper.db` by default. To use a different path, set the `TOPUNIPDBMAPPER_DB` environment variable before running the app:
+Place `topunipdbmapper.db` in the repository’s `db/` directory so it resolves to `db/topunipdbmapper.db` by default. To use a different path—whether you install via `pip`, `uv`, or inside a `conda`/`mamba` environment—set the `TOPUNIPDBMAPPER_DB` environment variable before running the app:
 ```bash
 export TOPUNIPDBMAPPER_DB=/path/to/your/topunipdbmapper.db
 ```
