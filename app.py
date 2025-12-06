@@ -61,7 +61,7 @@ def map_pdb():
         result = pl.read_database(query, conn, execute_options={"parameters": params})
 
         if len(result) == 0:
-            return jsonify({"error": "No mapping found for the requested PDB range"}), 404
+            return jsonify({"message": "No mapping found for the requested PDB range"}), 404
 
         return jsonify(result.to_dicts())
 
@@ -103,7 +103,7 @@ def map_uniprot():
         result = pl.read_database(query, conn, execute_options={"parameters": params})
 
         if len(result) == 0:
-            return jsonify({"error": "No mapping found for the requested UniProt range"}), 404
+            return jsonify({"message": "No mapping found for the requested UniProt range"}), 404
 
         return jsonify(result.to_dicts())
 

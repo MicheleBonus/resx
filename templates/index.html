@@ -173,6 +173,14 @@ function setExportButtonsEnabled(enabled) {
 
 setExportButtonsEnabled(false);
 
+function parseApiResponse(response) {
+    return response.json().then(data => ({
+        ok: response.ok,
+        status: response.status,
+        data,
+    }));
+}
+
 function validateWindowValue(value) {
     const windowValue = Number(value);
     if (!Number.isInteger(windowValue) || windowValue < 0 || windowValue > 10) {
@@ -337,16 +345,17 @@ document.getElementById('pdbForm').onsubmit = function(e) {
         method: 'POST',
         body: formData,
     })
-        .then(response => response.json())
-        .then(data => {
+        .then(parseApiResponse)
+        .then(({ ok, data }) => {
             const resultsDiv = document.getElementById('results');
             const resultsBody = document.getElementById('resultsBody');
             const resultsHeader = document.getElementById('resultsHeader');
 
-            if (data.error) {
+            if (!ok) {
                 currentResults = null;
                 setExportButtonsEnabled(false);
-                showError(data.error);
+                const message = data.message || data.error || 'An error occurred while fetching the data.';
+                showError(message);
                 resultsDiv.style.display = 'none';
                 return;
             }
@@ -420,16 +429,17 @@ document.getElementById('uniprotForm').onsubmit = function(e) {
         method: 'POST',
         body: formData,
     })
-        .then(response => response.json())
-        .then(data => {
+        .then(parseApiResponse)
+        .then(({ ok, data }) => {
             const resultsDiv = document.getElementById('results');
             const resultsBody = document.getElementById('resultsBody');
             const resultsHeader = document.getElementById('resultsHeader');
 
-            if (data.error) {
+            if (!ok) {
                 currentResults = null;
                 setExportButtonsEnabled(false);
-                showError(data.error);
+                const message = data.message || data.error || 'An error occurred while fetching the data.';
+                showError(message);
                 resultsDiv.style.display = 'none';
                 return;
             }
