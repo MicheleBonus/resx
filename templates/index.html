@@ -139,6 +139,24 @@
           </div>
         </div>
 
+        <div id="sequenceViewer" class="mt-4" style="display: none">
+          <h5>Sequence Context</h5>
+          <div class="sequence-track-container">
+            <div class="d-flex justify-content-between align-items-center">
+              <strong>PDB Chain</strong>
+              <small id="pdbSequenceLabel" class="text-muted"></small>
+            </div>
+            <div id="pdbSequenceTrack" class="sequence-track border rounded p-2"></div>
+          </div>
+          <div class="sequence-track-container mt-3">
+            <div class="d-flex justify-content-between align-items-center">
+              <strong>UniProt</strong>
+              <small id="uniprotSequenceLabel" class="text-muted"></small>
+            </div>
+            <div id="uniprotSequenceTrack" class="sequence-track border rounded p-2"></div>
+          </div>
+        </div>
+
         <div id="error" class="alert alert-danger mt-4" style="display: none"></div>
       </div>
     </div>
@@ -153,6 +171,35 @@ const exportButtons = [
     document.querySelector('#results button[onclick="downloadJSON()"]')
 ];
 const errorDiv = document.getElementById('error');
+const sequenceViewer = document.getElementById('sequenceViewer');
+const pdbSequenceTrack = document.getElementById('pdbSequenceTrack');
+const uniprotSequenceTrack = document.getElementById('uniprotSequenceTrack');
+const pdbSequenceLabel = document.getElementById('pdbSequenceLabel');
+const uniprotSequenceLabel = document.getElementById('uniprotSequenceLabel');
+
+const residueStyles = document.createElement('style');
+residueStyles.textContent = `
+  .sequence-track {
+    font-family: monospace;
+    white-space: normal;
+    word-break: break-word;
+    line-height: 1.6;
+  }
+  .residue-chip {
+    display: inline-block;
+    margin: 2px 1px;
+    padding: 4px 6px;
+    border-radius: 4px;
+    border: 1px solid #e2e6ea;
+    background-color: #f8f9fa;
+  }
+  .residue-chip.highlight {
+    background-color: #ffeeba;
+    border-color: #f0ad4e;
+    font-weight: bold;
+  }
+`;
+document.head.appendChild(residueStyles);
 
 function showError(message) {
     errorDiv.textContent = message;
@@ -162,6 +209,14 @@ function showError(message) {
 function clearError() {
     errorDiv.textContent = '';
     errorDiv.style.display = 'none';
+}
+
+function clearSequences() {
+    sequenceViewer.style.display = 'none';
+    pdbSequenceTrack.innerHTML = '';
+    uniprotSequenceTrack.innerHTML = '';
+    pdbSequenceLabel.textContent = '';
+    uniprotSequenceLabel.textContent = '';
 }
 
 function setExportButtonsEnabled(enabled) {
@@ -187,6 +242,18 @@ function validateWindowValue(value) {
         return 'Window must be an integer between 0 and 10.';
     }
     return null;
+}
+
+function fetchSequenceData(pdbId, chainId, uniprotId) {
+    const sequenceForm = new FormData();
+    sequenceForm.append('pdb_id', pdbId);
+    sequenceForm.append('chain_id', chainId);
+    sequenceForm.append('uniprot_id', uniprotId);
+
+    return fetch('/sequences', {
+        method: 'POST',
+        body: sequenceForm,
+    }).then(parseApiResponse);
 }
 
 function validatePdbFormData(formData) {
@@ -323,10 +390,59 @@ function downloadFile(content, filename, contentType) {
     window.URL.revokeObjectURL(url);
 }
 
+function createResidueChip(label, name, isHighlighted) {
+    const span = document.createElement('span');
+    span.className = 'residue-chip' + (isHighlighted ? ' highlight' : '');
+    span.title = `${label} (${name})`;
+    span.textContent = `${label}:${name}`;
+    return span;
+}
+
+function renderSequenceTrack(trackElement, sequence, highlightSet, getKey) {
+    trackElement.innerHTML = '';
+
+    sequence.forEach(residue => {
+        const key = getKey(residue);
+        const label = key;
+        const name = residue.pdb_residue_name || residue.uniprot_residue_name || '';
+        const chip = createResidueChip(label, name, highlightSet.has(key));
+        trackElement.appendChild(chip);
+    });
+}
+
+function renderSequencesView(sequencePayload, highlights, labels) {
+    const { pdb_sequence: pdbSequence, uniprot_sequence: uniprotSequence } = sequencePayload;
+
+    if (!pdbSequence || !uniprotSequence) {
+        clearSequences();
+        return;
+    }
+
+    pdbSequenceLabel.textContent = labels.pdb;
+    uniprotSequenceLabel.textContent = labels.uniprot;
+
+    renderSequenceTrack(
+        pdbSequenceTrack,
+        pdbSequence,
+        highlights.pdb,
+        residue => `${residue.pdb_residue_number}${residue.pdb_residue_insertion_code || ''}`
+    );
+
+    renderSequenceTrack(
+        uniprotSequenceTrack,
+        uniprotSequence,
+        highlights.uniprot,
+        residue => `${residue.uniprot_residue_number}`
+    );
+
+    sequenceViewer.style.display = 'block';
+}
+
 // Form handlers
 document.getElementById('pdbForm').onsubmit = function(e) {
     e.preventDefault();
     clearError();
+    clearSequences();
     const resultsDiv = document.getElementById('results');
     const formData = new FormData(e.target);
 
@@ -357,6 +473,7 @@ document.getElementById('pdbForm').onsubmit = function(e) {
                 const message = data.message || data.error || 'An error occurred while fetching the data.';
                 showError(message);
                 resultsDiv.style.display = 'none';
+                clearSequences();
                 return;
             }
 
@@ -396,12 +513,55 @@ document.getElementById('pdbForm').onsubmit = function(e) {
                     </tr>
                 `;
             });
+
+            const uniprotId = data[0]?.uniprot_accession_id;
+            const residue = Number(formData.get('residue'));
+            const window = Number(formData.get('window') || 0);
+            const insertionCode = (formData.get('insertion_code') || '').trim();
+            const startResidue = residue - window;
+            const endResidue = residue + window;
+
+            if (uniprotId) {
+                fetchSequenceData(formData.get('pdb_id'), formData.get('chain_id'), uniprotId)
+                    .then(({ ok: seqOk, data: sequenceData }) => {
+                        if (!seqOk) {
+                            clearSequences();
+                            return;
+                        }
+
+                        const pdbHighlight = new Set();
+                        sequenceData.pdb_sequence.forEach(residueEntry => {
+                            const num = residueEntry.pdb_residue_number;
+                            if (num >= startResidue && num <= endResidue) {
+                                const key = `${num}${residueEntry.pdb_residue_insertion_code || ''}`;
+                                pdbHighlight.add(key);
+                            }
+                        });
+
+                        const uniprotHighlight = new Set(
+                            currentResults.map(row => `${row.uniprot_residue_number}`)
+                        );
+
+                        renderSequencesView(
+                            sequenceData,
+                            { pdb: pdbHighlight, uniprot: uniprotHighlight },
+                            {
+                                pdb: `${formData.get('pdb_id').toUpperCase()} chain ${formData.get('chain_id').toUpperCase()} (target ${residue}${insertionCode || ''} ±${window})`,
+                                uniprot: `${uniprotId} (mapped window)`,
+                            }
+                        );
+                    })
+                    .catch(() => clearSequences());
+            } else {
+                clearSequences();
+            }
         })
         .catch(error => {
             currentResults = null;
             setExportButtonsEnabled(false);
             showError('An error occurred while fetching the data.');
             document.getElementById('results').style.display = 'none';
+            clearSequences();
         })
         .finally(() => {
             hideLoading('pdb');
@@ -411,6 +571,7 @@ document.getElementById('pdbForm').onsubmit = function(e) {
 document.getElementById('uniprotForm').onsubmit = function(e) {
     e.preventDefault();
     clearError();
+    clearSequences();
     const resultsDiv = document.getElementById('results');
     const formData = new FormData(e.target);
 
@@ -441,6 +602,7 @@ document.getElementById('uniprotForm').onsubmit = function(e) {
                 const message = data.message || data.error || 'An error occurred while fetching the data.';
                 showError(message);
                 resultsDiv.style.display = 'none';
+                clearSequences();
                 return;
             }
 
@@ -478,12 +640,54 @@ document.getElementById('uniprotForm').onsubmit = function(e) {
                     </tr>
                 `;
             });
+
+            const pdbId = data[0]?.pdb_accession_id;
+            const chainId = data[0]?.pdb_chain_id;
+            const residue = Number(formData.get('residue'));
+            const window = Number(formData.get('window') || 0);
+            const startResidue = residue - window;
+            const endResidue = residue + window;
+
+            if (pdbId && chainId) {
+                fetchSequenceData(pdbId, chainId, formData.get('uniprot_id'))
+                    .then(({ ok: seqOk, data: sequenceData }) => {
+                        if (!seqOk) {
+                            clearSequences();
+                            return;
+                        }
+
+                        const uniprotHighlight = new Set();
+                        sequenceData.uniprot_sequence.forEach(residueEntry => {
+                            const num = residueEntry.uniprot_residue_number;
+                            if (num >= startResidue && num <= endResidue) {
+                                uniprotHighlight.add(`${num}`);
+                            }
+                        });
+
+                        const pdbHighlight = new Set(
+                            currentResults.map(row => `${row.pdb_residue_number}${row.pdb_residue_insertion_code || ''}`)
+                        );
+
+                        renderSequencesView(
+                            sequenceData,
+                            { pdb: pdbHighlight, uniprot: uniprotHighlight },
+                            {
+                                pdb: `${pdbId.toUpperCase()} chain ${chainId} (mapped window)`,
+                                uniprot: `${formData.get('uniprot_id').toUpperCase()} target ${residue} ±${window}`,
+                            }
+                        );
+                    })
+                    .catch(() => clearSequences());
+            } else {
+                clearSequences();
+            }
         })
         .catch(error => {
             currentResults = null;
             setExportButtonsEnabled(false);
             showError('An error occurred while fetching the data.');
             document.getElementById('results').style.display = 'none';
+            clearSequences();
         })
         .finally(() => {
             hideLoading('uniprot');
