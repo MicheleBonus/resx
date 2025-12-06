@@ -91,6 +91,47 @@ def fetch_uniprot_mappings(uniprot_id: str, residue: int, window: int):
         return pl.read_database(query, conn, execute_options={"parameters": params})
 
 
+def _sequence_cache_key(pdb_id: str, chain_id: str, uniprot_id: str) -> tuple:
+    return pdb_id.lower(), chain_id, uniprot_id
+
+
+@cached(cache=query_cache, key=lambda pdb_id, chain_id, uniprot_id: _sequence_cache_key(pdb_id, chain_id, uniprot_id))
+def fetch_sequences(pdb_id: str, chain_id: str, uniprot_id: str):
+    with get_db() as conn:
+        pdb_query = """
+        SELECT DISTINCT
+            pdb_residue_number,
+            pdb_residue_insertion_code,
+            pdb_residue_name
+        FROM residues
+        WHERE pdb_accession_id = ?
+        AND pdb_chain_id = ?
+        AND uniprot_accession_id = ?
+        ORDER BY pdb_residue_number, pdb_residue_insertion_code
+        """
+        pdb_params = [pdb_id.lower(), chain_id, uniprot_id]
+
+        uniprot_query = """
+        SELECT DISTINCT
+            uniprot_residue_number,
+            uniprot_residue_name
+        FROM residues
+        WHERE uniprot_accession_id = ?
+        AND pdb_accession_id = ?
+        AND pdb_chain_id = ?
+        ORDER BY uniprot_residue_number
+        """
+        uniprot_params = [uniprot_id, pdb_id.lower(), chain_id]
+
+        pdb_sequence = pl.read_database(pdb_query, conn, execute_options={"parameters": pdb_params})
+        uniprot_sequence = pl.read_database(uniprot_query, conn, execute_options={"parameters": uniprot_params})
+
+        return {
+            "pdb_sequence": pdb_sequence.to_dicts(),
+            "uniprot_sequence": uniprot_sequence.to_dicts(),
+        }
+
+
 @app.route('/')
 def index():
     return render_template('index.html')
@@ -141,6 +182,23 @@ def map_uniprot():
         return jsonify({"message": "No mapping found for the requested UniProt range"}), 404
 
     return jsonify(result.to_dicts())
+
+
+@app.route('/sequences', methods=['POST'])
+def sequences():
+    pdb_id = (request.form.get('pdb_id') or '').strip()
+    chain_id = (request.form.get('chain_id') or '').strip()
+    uniprot_id = (request.form.get('uniprot_id') or '').strip()
+
+    if not pdb_id or not chain_id or not uniprot_id:
+        return jsonify({"message": "pdb_id, chain_id, and uniprot_id are required"}), 400
+
+    sequences = fetch_sequences(pdb_id, chain_id, uniprot_id)
+
+    if not sequences["pdb_sequence"] or not sequences["uniprot_sequence"]:
+        return jsonify({"message": "No sequence data found for the provided identifiers"}), 404
+
+    return jsonify(sequences)
 
 
 if __name__ == '__main__':
