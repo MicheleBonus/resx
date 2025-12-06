@@ -368,12 +368,20 @@ document.getElementById('pdbForm').onsubmit = function(e) {
             `;
 
             data.forEach(row => {
+                const pdbId = (row.pdb_accession_id || formData.get('pdb_id') || '').toUpperCase();
+                const chainId = (row.pdb_chain_id || formData.get('chain_id') || '').toUpperCase();
+                const residueLabel = `${row.pdb_residue_number}${row.pdb_residue_insertion_code || ''}`;
+                const pdbResidueTitle = `Open PDB entry ${pdbId} chain ${chainId} residue ${residueLabel}`;
+                const pdbResidueLink = `<a href="https://www.rcsb.org/structure/${pdbId}" target="_blank" rel="noopener noreferrer" title="${pdbResidueTitle}">${residueLabel}</a>`;
+                const uniprotId = row.uniprot_accession_id;
+                const uniprotLink = `<a href="https://www.uniprot.org/uniprotkb/${uniprotId}" target="_blank" rel="noopener noreferrer" title="Open UniProt entry ${uniprotId}">${uniprotId}</a>`;
+
                 resultsBody.innerHTML += `
                     <tr>
-                        <td>${row.pdb_residue_number}</td>
+                        <td>${pdbResidueLink}</td>
                         <td>${row.pdb_residue_insertion_code || '-'}</td>
                         <td>${row.pdb_residue_name}</td>
-                        <td>${row.uniprot_accession_id}</td>
+                        <td>${uniprotLink}</td>
                         <td>${row.uniprot_residue_number}</td>
                         <td>${row.uniprot_residue_name}</td>
                     </tr>
@@ -443,11 +451,17 @@ document.getElementById('uniprotForm').onsubmit = function(e) {
             `;
 
             data.forEach(row => {
+                const pdbId = row.pdb_accession_id.toUpperCase();
+                const residueLabel = `${row.pdb_residue_number}${row.pdb_residue_insertion_code || ''}`;
+                const pdbResidueTitle = `Open PDB entry ${pdbId} chain ${row.pdb_chain_id} residue ${residueLabel}`;
+                const pdbLink = `<a href="https://www.rcsb.org/structure/${pdbId}" target="_blank" rel="noopener noreferrer" title="Open PDB entry ${pdbId}">${row.pdb_accession_id}</a>`;
+                const pdbResidueLink = `<a href="https://www.rcsb.org/structure/${pdbId}" target="_blank" rel="noopener noreferrer" title="${pdbResidueTitle}">${row.pdb_residue_number}</a>`;
+
                 resultsBody.innerHTML += `
                     <tr>
-                        <td>${row.pdb_accession_id}</td>
+                        <td>${pdbLink}</td>
                         <td>${row.pdb_chain_id}</td>
-                        <td>${row.pdb_residue_number}</td>
+                        <td>${pdbResidueLink}</td>
                         <td>${row.pdb_residue_insertion_code || '-'}</td>
                         <td>${row.pdb_residue_name}</td>
                         <td>${row.uniprot_residue_name}</td>
