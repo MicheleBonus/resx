@@ -2,88 +2,111 @@ from flask import Flask, render_template, request, jsonify
 from db.sqlite import get_db
 import polars as pl
 
+from utils.validation import handle_validation, validate_request
+
 app = Flask(__name__)
+
 
 @app.route('/')
 def index():
     return render_template('index.html')
 
+
 @app.route('/map/pdb', methods=['POST'])
 def map_pdb():
-    pdb_id = request.form.get('pdb_id')
-    chain_id = request.form.get('chain_id')
-    residue = request.form.get('residue')
-    window = request.form.get('window', 0)
-    insertion_code = request.form.get('insertion_code', '')
-    
+    validation = validate_request(
+        request.form,
+        ['pdb_id', 'chain_id', 'residue'],
+        allow_insertion_code=True
+    )
+    error_response = handle_validation(validation)
+    if error_response:
+        return error_response
+
+    pdb_id = validation.data['pdb_id']
+    chain_id = validation.data['chain_id']
+    residue = validation.data['residue']
+    window = validation.data['window']
+    insertion_code = validation.data.get('insertion_code', '')
+
     with get_db() as conn:
         query = """
-        SELECT 
+        SELECT
             pdb_residue_number,
             pdb_residue_insertion_code,
             pdb_residue_name,
             uniprot_accession_id,
             uniprot_residue_number,
             uniprot_residue_name
-        FROM residues 
-        WHERE pdb_accession_id = ? 
-        AND pdb_chain_id = ? 
+        FROM residues
+        WHERE pdb_accession_id = ?
+        AND pdb_chain_id = ?
         AND pdb_residue_number BETWEEN ? AND ?
         """
         params = [
-            pdb_id.lower(), 
-            chain_id, 
-            int(residue) - int(window), 
-            int(residue) + int(window)
+            pdb_id.lower(),
+            chain_id,
+            residue - window,
+            residue + window
         ]
-        
+
         if insertion_code:
             query += " AND pdb_residue_insertion_code = ?"
             params.append(insertion_code)
         else:
             query += " AND (pdb_residue_insertion_code IS NULL OR pdb_residue_insertion_code = '')"
-        
+
         query += " ORDER BY pdb_residue_number, pdb_residue_insertion_code"
-        
+
         result = pl.read_database(query, conn, execute_options={"parameters": params})
-        
+
         if len(result) == 0:
-            return jsonify({"error": "No mapping found"})
-            
+            return jsonify({"error": "No mapping found for the requested PDB range"}), 404
+
         return jsonify(result.to_dicts())
+
 
 @app.route('/map/uniprot', methods=['POST'])
 def map_uniprot():
-    uniprot_id = request.form.get('uniprot_id')
-    residue = request.form.get('residue')
-    window = request.form.get('window', 0)
-    
+    validation = validate_request(
+        request.form,
+        ['uniprot_id', 'residue']
+    )
+    error_response = handle_validation(validation)
+    if error_response:
+        return error_response
+
+    uniprot_id = validation.data['uniprot_id']
+    residue = validation.data['residue']
+    window = validation.data['window']
+
     with get_db() as conn:
         query = """
-        SELECT 
+        SELECT
             pdb_accession_id,
             pdb_chain_id,
             pdb_residue_number,
             pdb_residue_insertion_code,
             pdb_residue_name,
             uniprot_residue_name
-        FROM residues 
-        WHERE uniprot_accession_id = ? 
+        FROM residues
+        WHERE uniprot_accession_id = ?
         AND uniprot_residue_number BETWEEN ? AND ?
         ORDER BY pdb_accession_id, pdb_chain_id, pdb_residue_number, pdb_residue_insertion_code
         """
         params = [
             uniprot_id,
-            int(residue) - int(window),
-            int(residue) + int(window)
+            residue - window,
+            residue + window
         ]
-        
+
         result = pl.read_database(query, conn, execute_options={"parameters": params})
-        
+
         if len(result) == 0:
-            return jsonify({"error": "No mapping found"})
-            
+            return jsonify({"error": "No mapping found for the requested UniProt range"}), 404
+
         return jsonify(result.to_dicts())
+
 
 if __name__ == '__main__':
     app.run(debug=True)
