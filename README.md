@@ -17,15 +17,44 @@ git clone https://github.com/yourusername/resx.git
 cd resx
 ```
 
-2. Create a virtual environment and activate it:
+2. Create and activate a virtual environment (recommended):
 ```bash
-python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
+python -m venv .venv
+source .venv/bin/activate  # On Windows: .venv\Scripts\activate
 ```
 
-3. Install dependencies:
+3. Install dependencies using one of the options below.
+
+### Option A: `pip` with `pyproject.toml`
+If the project is configured with a `pyproject.toml`, install in editable mode:
+```bash
+pip install -e .
+```
+
+### Option B: `pip` with `requirements.txt`
+Install the pinned dependencies directly:
 ```bash
 pip install -r requirements.txt
+```
+
+### Option C: `uv` equivalents
+Using [`uv`](https://docs.astral.sh/uv/):
+```bash
+# Create the virtual environment
+uv venv .venv
+source .venv/bin/activate
+
+# Install from pyproject (when available)
+uv pip install -e .
+
+# Or install from requirements.txt
+uv pip install -r requirements.txt
+```
+
+### Database location
+The application expects the SQLite database at `db/topunipdbmapper.db` by default. To use a different path, set the `TOPUNIPDBMAPPER_DB` environment variable before running the app:
+```bash
+export TOPUNIPDBMAPPER_DB=/path/to/your/topunipdbmapper.db
 ```
 
 ## Usage
