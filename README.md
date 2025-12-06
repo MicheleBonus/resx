@@ -91,25 +91,99 @@ python app.py
 http://127.0.0.1:5000
 ```
 
-## API Endpoints
+## API Usage
 
-### PDB to UniProt Mapping
-```
-POST /map/pdb
-Form data:
-- pdb_id: PDB identifier (e.g., "101m")
-- chain_id: Chain identifier (e.g., "A")
-- residue: Residue number
-- window: Number of surrounding residues (optional, maximum of 10)
+The API accepts `application/x-www-form-urlencoded` form data (e.g., from HTML forms or `curl -d`). All routes enforce the same validation rules used by the web form.
+
+### `POST /map/pdb` — PDB to UniProt mapping
+
+Required fields:
+- `pdb_id`: PDB identifier (e.g., `101m`).
+- `chain_id`: Chain identifier (e.g., `A`).
+- `residue`: Integer residue number.
+
+Optional fields:
+- `window`: Integer window size from `0`–`10` (default: `0`). Values outside this range return `{"error": "window must be an integer between 0 and 10"}` with HTTP 400.
+- `insertion_code`: Single-character insertion code. Submitting more than one character returns `{"error": "insertion_code must be a single character"}` with HTTP 400. Omit this field to target residues without an insertion code.
+
+Validation behavior:
+- Missing required fields return `{"error": "Missing required field: <field>"}` with HTTP 400.
+- Non-integer `residue` or `window` values return `"<field> must be an integer"` with HTTP 400.
+- A valid request that finds no mapping returns `{"error": "No mapping found for the requested PDB range"}` with HTTP 404.
+
+Sample request:
+```bash
+curl -X POST http://127.0.0.1:5000/map/pdb \
+  -d "pdb_id=1abc" \
+  -d "chain_id=A" \
+  -d "residue=42" \
+  -d "window=2"
 ```
 
-### UniProt to PDB Mapping
+Sample response:
+```json
+[
+  {
+    "pdb_residue_number": 41,
+    "pdb_residue_insertion_code": "",
+    "pdb_residue_name": "SER",
+    "uniprot_accession_id": "P12345",
+    "uniprot_residue_number": 105,
+    "uniprot_residue_name": "SER"
+  },
+  {
+    "pdb_residue_number": 42,
+    "pdb_residue_insertion_code": "A",
+    "pdb_residue_name": "GLY",
+    "uniprot_accession_id": "P12345",
+    "uniprot_residue_number": 106,
+    "uniprot_residue_name": "GLY"
+  }
+]
 ```
-POST /map/uniprot
-Form data:
-- uniprot_id: UniProt accession (e.g., "P02185")
-- residue: Residue number
-- window: Number of surrounding residues (optional, maximum of 10)
+
+### `POST /map/uniprot` — UniProt to PDB mapping
+
+Required fields:
+- `uniprot_id`: UniProt accession (e.g., `P02185`).
+- `residue`: Integer residue number.
+
+Optional fields:
+- `window`: Integer window size from `0`–`10` (default: `0`). Values outside this range return `{"error": "window must be an integer between 0 and 10"}` with HTTP 400.
+
+Validation behavior:
+- Missing required fields return `{"error": "Missing required field: <field>"}` with HTTP 400.
+- Non-integer `residue` or `window` values return `"<field> must be an integer"` with HTTP 400.
+- A valid request that finds no mapping returns `{"error": "No mapping found for the requested UniProt range"}` with HTTP 404.
+
+Sample request:
+```bash
+curl -X POST http://127.0.0.1:5000/map/uniprot \
+  -d "uniprot_id=P12345" \
+  -d "residue=106" \
+  -d "window=1"
+```
+
+Sample response:
+```json
+[
+  {
+    "pdb_accession_id": "1abc",
+    "pdb_chain_id": "A",
+    "pdb_residue_number": 105,
+    "pdb_residue_insertion_code": "",
+    "pdb_residue_name": "SER",
+    "uniprot_residue_name": "SER"
+  },
+  {
+    "pdb_accession_id": "1abc",
+    "pdb_chain_id": "A",
+    "pdb_residue_number": 106,
+    "pdb_residue_insertion_code": "A",
+    "pdb_residue_name": "GLY",
+    "uniprot_residue_name": "GLY"
+  }
+]
 ```
 
 ## Development
