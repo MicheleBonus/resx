@@ -79,6 +79,16 @@ Place `topunipdbmapper.db` in the repository’s `db/` directory so it resolves 
 export TOPUNIPDBMAPPER_DB=/path/to/your/topunipdbmapper.db
 ```
 
+### Caching configuration
+Query responses are cached using an in-memory TTL LRU cache to avoid redundant lookups. Configure its limits through environment variables:
+
+```bash
+export QUERY_CACHE_MAXSIZE=1024  # maximum number of cached entries (default: 1024)
+export QUERY_CACHE_TTL=300       # lifetime of cached entries in seconds (default: 300)
+```
+
+Call `clear_query_cache()` from `app.py` after any database updates to invalidate stale cache entries.
+
 ## Usage
 
 1. Start the server:

@@ -1,34 +1,35 @@
+import os
+
+from cachetools import TTLCache, cached
 from flask import Flask, render_template, request, jsonify
-from db.sqlite import get_db
 import polars as pl
 
+from db.sqlite import get_db
 from utils.validation import handle_validation, validate_request
 
 app = Flask(__name__)
 
+CACHE_MAXSIZE = int(os.getenv("QUERY_CACHE_MAXSIZE", 1024))
+CACHE_TTL = int(os.getenv("QUERY_CACHE_TTL", 300))
+query_cache = TTLCache(maxsize=CACHE_MAXSIZE, ttl=CACHE_TTL)
 
-@app.route('/')
-def index():
-    return render_template('index.html')
+
+def clear_query_cache():
+    """Invalidate cached query results.
+
+    This should be called whenever the underlying database is modified to
+    ensure cached responses remain in sync with persistent storage.
+    """
+
+    query_cache.clear()
 
 
-@app.route('/map/pdb', methods=['POST'])
-def map_pdb():
-    validation = validate_request(
-        request.form,
-        ['pdb_id', 'chain_id', 'residue'],
-        allow_insertion_code=True
-    )
-    error_response = handle_validation(validation)
-    if error_response:
-        return error_response
+def _pdb_cache_key(pdb_id: str, chain_id: str, residue: int, window: int, insertion_code: str) -> tuple:
+    return pdb_id.lower(), chain_id, residue, window, insertion_code or ""
 
-    pdb_id = validation.data['pdb_id']
-    chain_id = validation.data['chain_id']
-    residue = validation.data['residue']
-    window = validation.data['window']
-    insertion_code = validation.data.get('insertion_code', '')
 
+@cached(cache=query_cache, key=lambda pdb_id, chain_id, residue, window, insertion_code: _pdb_cache_key(pdb_id, chain_id, residue, window, insertion_code))
+def fetch_pdb_mappings(pdb_id: str, chain_id: str, residue: int, window: int, insertion_code: str):
     with get_db() as conn:
         query = """
         SELECT
@@ -58,28 +59,15 @@ def map_pdb():
 
         query += " ORDER BY pdb_residue_number, pdb_residue_insertion_code"
 
-        result = pl.read_database(query, conn, execute_options={"parameters": params})
-
-        if len(result) == 0:
-            return jsonify({"message": "No mapping found for the requested PDB range"}), 404
-
-        return jsonify(result.to_dicts())
+        return pl.read_database(query, conn, execute_options={"parameters": params})
 
 
-@app.route('/map/uniprot', methods=['POST'])
-def map_uniprot():
-    validation = validate_request(
-        request.form,
-        ['uniprot_id', 'residue']
-    )
-    error_response = handle_validation(validation)
-    if error_response:
-        return error_response
+def _uniprot_cache_key(uniprot_id: str, residue: int, window: int) -> tuple:
+    return uniprot_id, residue, window
 
-    uniprot_id = validation.data['uniprot_id']
-    residue = validation.data['residue']
-    window = validation.data['window']
 
+@cached(cache=query_cache, key=lambda uniprot_id, residue, window: _uniprot_cache_key(uniprot_id, residue, window))
+def fetch_uniprot_mappings(uniprot_id: str, residue: int, window: int):
     with get_db() as conn:
         query = """
         SELECT
@@ -100,12 +88,59 @@ def map_uniprot():
             residue + window
         ]
 
-        result = pl.read_database(query, conn, execute_options={"parameters": params})
+        return pl.read_database(query, conn, execute_options={"parameters": params})
 
-        if len(result) == 0:
-            return jsonify({"message": "No mapping found for the requested UniProt range"}), 404
 
-        return jsonify(result.to_dicts())
+@app.route('/')
+def index():
+    return render_template('index.html')
+
+
+@app.route('/map/pdb', methods=['POST'])
+def map_pdb():
+    validation = validate_request(
+        request.form,
+        ['pdb_id', 'chain_id', 'residue'],
+        allow_insertion_code=True
+    )
+    error_response = handle_validation(validation)
+    if error_response:
+        return error_response
+
+    pdb_id = validation.data['pdb_id']
+    chain_id = validation.data['chain_id']
+    residue = validation.data['residue']
+    window = validation.data['window']
+    insertion_code = validation.data.get('insertion_code', '')
+
+    result = fetch_pdb_mappings(pdb_id, chain_id, residue, window, insertion_code)
+
+    if len(result) == 0:
+        return jsonify({"message": "No mapping found for the requested PDB range"}), 404
+
+    return jsonify(result.to_dicts())
+
+
+@app.route('/map/uniprot', methods=['POST'])
+def map_uniprot():
+    validation = validate_request(
+        request.form,
+        ['uniprot_id', 'residue']
+    )
+    error_response = handle_validation(validation)
+    if error_response:
+        return error_response
+
+    uniprot_id = validation.data['uniprot_id']
+    residue = validation.data['residue']
+    window = validation.data['window']
+
+    result = fetch_uniprot_mappings(uniprot_id, residue, window)
+
+    if len(result) == 0:
+        return jsonify({"message": "No mapping found for the requested UniProt range"}), 404
+
+    return jsonify(result.to_dicts())
 
 
 if __name__ == '__main__':
