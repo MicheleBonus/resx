@@ -17,7 +17,7 @@ def _invalid_number(field: str) -> Tuple[dict, int]:
 
 
 def _invalid_window() -> Tuple[dict, int]:
-    return {"error": "window must be a non-negative integer"}, 400
+    return {"error": "window must be an integer between 0 and 10"}, 400
 
 
 def _invalid_insertion_code() -> Tuple[dict, int]:
@@ -44,7 +44,7 @@ def validate_request(form, required_fields, *, allow_insertion_code: bool = Fals
     except (ValueError, TypeError):
         return ValidationResult({}, _invalid_number("window"))
 
-    if window < 0:
+    if window < 0 or window > 10:
         return ValidationResult({}, _invalid_window())
 
     data["window"] = window

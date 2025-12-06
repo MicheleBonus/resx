@@ -49,7 +49,7 @@ Form data:
 - pdb_id: PDB identifier (e.g., "101m")
 - chain_id: Chain identifier (e.g., "A")
 - residue: Residue number
-- window: Number of surrounding residues (optional)
+- window: Number of surrounding residues (optional, maximum of 10)
 ```
 
 ### UniProt to PDB Mapping
@@ -58,7 +58,7 @@ POST /map/uniprot
 Form data:
 - uniprot_id: UniProt accession (e.g., "P02185")
 - residue: Residue number
-- window: Number of surrounding residues (optional)
+- window: Number of surrounding residues (optional, maximum of 10)
 ```
 
 ## Development
