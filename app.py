@@ -132,6 +132,28 @@ def fetch_sequences(pdb_id: str, chain_id: str, uniprot_id: str):
         }
 
 
+def _chain_residues_cache_key(pdb_id: str, chain_id: str) -> tuple:
+    return pdb_id.lower(), chain_id
+
+
+@cached(cache=query_cache, key=lambda pdb_id, chain_id: _chain_residues_cache_key(pdb_id, chain_id))
+def fetch_chain_residues(pdb_id: str, chain_id: str):
+    with get_db() as conn:
+        query = """
+        SELECT DISTINCT
+            pdb_residue_number,
+            pdb_residue_insertion_code,
+            pdb_residue_name
+        FROM residues
+        WHERE pdb_accession_id = ?
+        AND pdb_chain_id = ?
+        ORDER BY pdb_residue_number, pdb_residue_insertion_code
+        """
+        params = [pdb_id.lower(), chain_id]
+
+        return pl.read_database(query, conn, execute_options={"parameters": params})
+
+
 @app.route('/')
 def index():
     return render_template('index.html')
@@ -199,6 +221,16 @@ def sequences():
         return jsonify({"message": "No sequence data found for the provided identifiers"}), 404
 
     return jsonify(sequences)
+
+
+@app.route('/chains/<pdb_id>/<chain_id>', methods=['GET'])
+def chain_residues(pdb_id: str, chain_id: str):
+    residues = fetch_chain_residues(pdb_id, chain_id)
+
+    if len(residues) == 0:
+        return jsonify({"message": "No residues found for the requested chain"}), 404
+
+    return jsonify(residues.to_dicts())
 
 
 if __name__ == '__main__':
